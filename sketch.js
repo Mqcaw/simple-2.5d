@@ -1,11 +1,16 @@
 let walls = [];
 let player;
 let keys = {};
-let img;
+let tileSize = 80;
+let texturesPaths = ['black.png', 'stone.png', 'oak_planks.png', 'cobblestone.png', 'grass_block_side.png'];
+let textures = [];
+
 
 function preload() {
-  img = loadImage('stone.png');
-  img.loadPixels();
+  for (let i = 0; i < texturesPaths.length; i++) {
+    textures[i] = loadImage(texturesPaths[i]);
+    textures[i].loadPixels();
+  }
 }
 
 function setup() {
@@ -13,79 +18,127 @@ function setup() {
   noCursor();
   player = new Player(80, 0.1);
 
+  /*
   for (let i = 0; i < 5; i++) {
-    walls.push(new Wall(random(width), random(height), random(width), random(height), [random(255), random(255), random(255)]));
+    walls.push(new Wall(random(width), random(height), random(width), random(height), Math.floor(random(textures.length - 1)) + 1, [random(255), random(255), random(255)]));
   }
+  */
+  
+  walls.push(new Wall(tileSize, tileSize, tileSize * 2, tileSize, 4, [random(255), random(255), random(255)]));
+  walls.push(new Wall(tileSize, tileSize * 2, tileSize * 2, tileSize * 2, 4, [random(255), random(255), random(255)]));
+  walls.push(new Wall(tileSize, tileSize, tileSize, tileSize * 2, 4, [random(255), random(255), random(255)]));
+  walls.push(new Wall(tileSize * 2, tileSize, tileSize * 2, tileSize * 2, 4, [random(255), random(255), random(255)]));
 
-  walls.push(new Wall(0, 0, width, 0, [random(255), random(255), random(255)]));
-  walls.push(new Wall(width, 0, width, height, [random(255), random(255), random(255)]));
-  walls.push(new Wall(width, height, 0, height, [random(255), random(255), random(255)]));
-  walls.push(new Wall(0, height, 0, 0, [random(255), random(255), random(255)]));
+  walls.push(new Wall(0, 0, width, 0, Math.floor(random(textures.length - 1)) + 1, [random(255), random(255), random(255)]));
+  walls.push(new Wall(width, 0, width,  height, Math.floor(random(textures.length - 1)) + 1, [random(255), random(255), random(255)]));
+  walls.push(new Wall(width, height, 0, height, Math.floor(random(textures.length - 1)) + 1, [random(255), random(255), random(255)]));
+  walls.push(new Wall(0, height, 0, 0, Math.floor(random(textures.length - 1)) + 1, [random(255), random(255), random(255)]));
+  
 }
 
 function draw() {
   background(0);
+
   handleInput();
   const scene = player.look(walls);
   render3D(scene);
-  drawMiniMap();
+
+  drawMiniMap(scene);
   drawCrosshair();
+
 }
 
 function render3D(scene) {
-  loadPixels();
-  img.loadPixels();
   const scale = height * 100;
+  const verticalStep = 2;
+  loadPixels();
+  //let mod = parseFloat(slider.value).toFixed(2);
+  let mod = player.mod;
+
+  for (let j = 0; j < pixels.length; j += 4) {
+    if (j <= (pixels.length / 2) + ((pixels.length / height) *  player.mod)) {
+      pixels[j] = 140;
+      pixels[j + 1] = 175;
+      pixels[j + 2] = 254;
+      pixels[j + 3] = 255;
+    } else {
+      pixels[j] = 184;
+      pixels[j + 1] = 207;
+      pixels[j + 2] = 249;
+      pixels[j + 3] = 255;
+    }
+      
+    }
 
   for (let i = 0; i < scene.length; i++) {
     const ray = scene[i];
+    const img = ray.texture? textures[ray.texture] : textures[0];
+    const imgWidth = img.width;
+    const imgHeight = img.height;
     const dist = Math.max(ray.distance * Math.cos(ray.angleOffset), 0.001);
-    const wallHeight = Math.min((1 / dist) * scale, height);
-    const topY = Math.floor((height - wallHeight) / 2);
+    let wallHeight = Math.min((1 / dist) * scale, height * 10);
 
-    const texX = Math.floor((ray.texOffset ?? 0.5) * img.width) % img.width;
+    const topY = Math.floor(((height - wallHeight) / 2) + player.mod);
 
-    for (let y = 0; y < wallHeight; y++) {
+    const texX = Math.floor((ray.length / tileSize) * imgWidth) % imgWidth;
+
+    const shade = map(dist, 0, 8000, 0, 1);
+
+    img.loadPixels();
+
+
+    for (let y = 0; y < wallHeight; y += verticalStep) {
       const screenY = topY + y;
       if (screenY < 0 || screenY >= height) continue;
 
-      const texY = Math.floor((y / wallHeight) * img.height);
-      const texIndex = 4 * (texY * img.width + texX);
+      const texY = Math.floor((y / wallHeight) * imgHeight);
+      const texIndex = 4 * (texY * imgWidth + texX);
 
       let r = img.pixels[texIndex];
       let g = img.pixels[texIndex + 1];
       let b = img.pixels[texIndex + 2];
+      let a = img.pixels[texIndex + 3]
 
-      
-      const shade = map(dist, 0, max(width, height), 1, 0)
-      r *= shade;
-      g *= shade;
-      b *= shade;
-      
+      r = Math.floor(r + (192 - r) * shade);
+      g = Math.floor(g + (216 - g) * shade);
+      b = Math.floor(b + (255 - b) * shade);
 
-      const x = i;
-      const index = 4 * (screenY * width + x);
+      const index = 4 * (screenY * width + i);
       pixels[index] = r;
       pixels[index + 1] = g;
       pixels[index + 2] = b;
-      pixels[index + 3] = 255;
+      pixels[index + 3] = a;
+
+      
+
+      if (verticalStep > 1 && screenY + 1 < height) {
+        for(let fillY = 1; fillY < verticalStep && (screenY + fillY) < height; fillY++) {
+          const fillIndex = 4 * ((screenY + fillY) * width + i);
+          pixels[fillIndex] = r;
+          pixels[fillIndex + 1] = g;
+          pixels[fillIndex + 2] = b;
+          pixels[fillIndex + 3] = a;
+        }
+      }
     }
   }
-
-  updatePixels(); // Push all pixels to the screen
+  updatePixels();
 }
 
 function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
+  player.totalRays = width;
+  loadPixels();
 }
 
 function handleInput() {
-  const speed = 4;
+  let speed = player.speed;
   const angle = player.heading;
   const dir = createVector(cos(angle), sin(angle));
   const perp = createVector(-dir.y, dir.x);
 
   let movement = createVector(0, 0);
+  if (keys["shift"]) speed = Math.floor(player.speed * 2);
   if (keys['w']) movement.add(dir.copy().mult(speed));
   if (keys['s']) movement.add(dir.copy().mult(-speed));
   if (keys['a']) movement.add(perp.copy().mult(-speed));
@@ -93,7 +146,7 @@ function handleInput() {
   player.move(movement.x, movement.y);
 }
 
-function keyPressed() {
+function keyPressed(event) {
   keys[key.toLowerCase()] = true;
 
   if (!document.pointerLockElement) {
@@ -101,13 +154,15 @@ function keyPressed() {
   }
 }
 
-function keyReleased() {
+
+function keyReleased(event) {
   keys[key.toLowerCase()] = false;
 }
 
 function mouseMoved(event) {
   if (document.pointerLockElement) {
     player.rotate(radians(event.movementX * player.sensitivity));
+    player.mod += -event.movementY * player.sensitivity * 15; 
   }
 }
 
@@ -122,7 +177,7 @@ function requestPointerLock() {
   }
 }
 
-function drawMiniMap() {
+function drawMiniMap(scene) {
   const scale = 0.15;
   const w = width * scale;
   const h = height * scale;
@@ -147,7 +202,6 @@ function drawMiniMap() {
   }
 
   stroke(100, 255, 100, 100);
-  const scene = player.look(walls, true);
   for (let i = 0; i < scene.length; i++) {
     const pt = scene[i].point;
     line(
