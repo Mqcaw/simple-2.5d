@@ -20,11 +20,11 @@ function setup() {
   noCursor();
   player = new Player(80, 0.1);
 
-  /*
+  
   for (let i = 0; i < 5; i++) {
     walls.push(new Wall(random(width), random(height), random(width), random(height), Math.floor(random(textures.length - 1)) + 1, [random(255), random(255), random(255)]));
   }
-  */
+  
   
   walls.push(new Wall(tileSize, tileSize, tileSize * 2, tileSize, 4, [random(255), random(255), random(255)]));
   walls.push(new Wall(tileSize, tileSize * 2, tileSize * 2, tileSize * 2, 4, [random(255), random(255), random(255)]));
@@ -164,7 +164,7 @@ function keyReleased(event) {
 }
 
 function mouseMoved(event) {
-  if (document.pointerLockElement === canvas.elt) {
+  if (document.pointerLockElement) {
     player.rotate(radians(event.movementX * player.sensitivity));
     player.mod += -event.movementY * player.sensitivity * 15;
   }
