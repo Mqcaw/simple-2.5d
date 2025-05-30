@@ -2,8 +2,9 @@ let walls = [];
 let player;
 let keys = {};
 let tileSize = 80;
-let texturesPaths = ['black.png', 'stone.png', 'oak_planks.png', 'cobblestone.png', 'grass_block_side.png'];
+let texturesPaths = ['assets/black.png', 'assets/stone.png', 'assets/oak_planks.png', 'assets/cobblestone.png', 'assets/grass_block_side.png'];
 let textures = [];
+let canvas;
 
 
 function preload() {
@@ -14,7 +15,8 @@ function preload() {
 }
 
 function setup() {
-  createCanvas(windowWidth, windowHeight);
+  canvas = createCanvas(windowWidth, windowHeight);
+  canvas.elt.addEventListener('click', requestPointerLock);
   noCursor();
   player = new Player(80, 0.1);
 
@@ -34,6 +36,8 @@ function setup() {
   walls.push(new Wall(width, height, 0, height, Math.floor(random(textures.length - 1)) + 1, [random(255), random(255), random(255)]));
   walls.push(new Wall(0, height, 0, 0, Math.floor(random(textures.length - 1)) + 1, [random(255), random(255), random(255)]));
   
+
+  document.addEventListener('mousemove', mouseMoved);
 }
 
 function draw() {
@@ -160,9 +164,9 @@ function keyReleased(event) {
 }
 
 function mouseMoved(event) {
-  if (document.pointerLockElement) {
+  if (document.pointerLockElement === canvas.elt) {
     player.rotate(radians(event.movementX * player.sensitivity));
-    player.mod += -event.movementY * player.sensitivity * 15; 
+    player.mod += -event.movementY * player.sensitivity * 15;
   }
 }
 
@@ -171,9 +175,8 @@ function mouseWheel(event) {
 }
 
 function requestPointerLock() {
-  const canvas = document.querySelector('canvas');
-  if (canvas.requestPointerLock) {
-    canvas.requestPointerLock();
+  if (canvas.elt.requestPointerLock) {
+    canvas.elt.requestPointerLock();
   }
 }
 
